@@ -11,9 +11,9 @@ class DeliverySlice:
         self.occupied = False
         self.internal = [False] * internal_positions
     
-    def ready_delivery(drinks):
+    def ready_delivery(orders):
         self.occupied = True
-        for i in range(0, drinks):
+        for i in range(0, orders):
             self.internal[i] = True;
     
     def delivery_taken():
