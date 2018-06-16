@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 from mpl_toolkits.mplot3d import Axes3D
@@ -15,17 +15,17 @@ import math
 DEBUG = False
 
 
-# In[ ]:
+# In[2]:
 
 
 class Bobo:
-    full_torque = 45    # 45 degrees / second
     def __init__(self, arms):
         self.arm1 = arms[0]
         self.arm2 = arms[1]
         self.time_elapsed = 0
         self.target = self.arm2.get_endpoint()
         self.moving = False
+        self.torque = 45    # 45 deg / sec
         
     def position(self):
         return self.arm2.get_endpoint()
@@ -53,7 +53,7 @@ class Bobo:
         return abs(distance - self.arm2.length) < 1
         
     def move_arm1(self, distance):
-        if not in_range:
+        if not self.in_range():
             self.arm1.move(distance)
             self.arm2.set_origin(self.arm1.get_endpoint())
     
@@ -68,7 +68,7 @@ class Bobo:
             a1_limit = math.degrees(math.atan(self.target[0] / self.target[1]))
 
             # adjust arm1 by some degrees
-            move_arm1(np.sign(a1_limit - self.arm1.angle) * full_torque * dt)
+            self.move_arm1(np.sign(a1_limit - self.arm1.angle) * self.torque * dt)
 
             # find new angle for arm 2 resulting from arm1 movement
             a2_target = math.degrees(math.atan((self.target[1] - self.arm2.get_endpoint[1]) / 
@@ -100,7 +100,7 @@ class Arm:
         return endpoint
 
 
-# In[ ]:
+# In[3]:
 
 
 arm1 = Arm(10, [0, 0], -90)
@@ -109,7 +109,7 @@ arms = [arm1, arm2]
 rob = Bobo(arms)
 
 
-# In[ ]:
+# In[4]:
 
 
 fig = plt.figure()
@@ -130,7 +130,7 @@ for i in range(0, len(arms)):
     ax.plot([this_arm.origin[0], this_end[0]], [this_arm.origin[1], this_end[1]])
 
 
-# In[ ]:
+# In[5]:
 
 
 dt = 1/30    # 30fps
@@ -138,7 +138,7 @@ line, = ax.plot([], [], lw=2)
 time_text = ax.text(0.02, 0.95, "", transform=ax.transAxes)
 
 
-# In[ ]:
+# In[6]:
 
 
 def init():
