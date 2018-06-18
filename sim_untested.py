@@ -1,5 +1,5 @@
 from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import animation
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import matplotlib.lines as lin
 from time import time
@@ -13,16 +13,28 @@ class Bobo:
     def __init__(self, arms):
         self.arm1 = arms[0]
         self.arm2 = arms[1]
+        self.angle1 = arm1.angle
+        self.angle2 = arm2.angle
+        self.w1 = 0
+        self.w2 = 0
         self.time_elapsed = 0
         self.target = self.arm2.get_endpoint()
         self.moving = False
-        self.torque = 45  # 45 deg / sec
+        self.torque = 1  # 1 deg / sec
 
     def position(self):
         return self.arm2.get_endpoint()
 
+    def get_x(self):
+        x = [self.arm1.origin[0], self.arm2.origin[0], self.position()[0]]
+        return x
+
+    def get_y(self):
+        y = [self.arm1.origin[1], self.arm2.origin[1], self.position()[1]]
+        return y
+
     def reach(self, new_target):
-        print("Reaching for target >:]")
+        print("Reaching for target")
         # if "under the table" may have to move arm1 back to
         # retract arm2 first before moving above the table
 
@@ -32,6 +44,7 @@ class Bobo:
 
     def reset(self):
         print("Resetting arms :)")
+        self.reach([10, -10])
 
     def target_prox(self):
         return math.hypot(self.target[0] - self.position()[0],
@@ -65,7 +78,7 @@ class Bobo:
             a2_target = math.degrees(math.atan((self.target[1] - self.position()[1]) /
                                                (self.target[0] - self.position()[0])))
             # adjust arm2 by some degrees
-            self.move_arm2(a2_target - self.arm2.angle)
+            self.move_arm2(np.sign(a2_target - self.arm2.angle) * self.torque * dt)
         self.time_elapsed += dt
 
 
@@ -98,7 +111,7 @@ arms = [arm1, arm2]
 rob = Bobo(arms)
 
 fig = plt.figure()
-ax = fig.add_subplot(111)
+ax = fig.add_subplot(111, autoscale_on=False, xlim=(-5, 25), ylim=(-20, 10))
 
 # for i in range(0, len(arms)):
 #     this_arm = arms[i]
@@ -114,7 +127,8 @@ ax = fig.add_subplot(111)
 #
 #     ax.plot([this_arm.origin[0], this_end[0]], [this_arm.origin[1], this_end[1]])
 
-dt = 1 / 30  # 30fps
+dt = 1 / 60  # 30fps
+t = np.arange(0.0, 10, dt)
 line, = ax.plot([], [], lw=2)
 time_text = ax.text(0.02, 0.95, "", transform=ax.transAxes)
 
@@ -128,12 +142,13 @@ def init():
 def animate(i):
     global rob, dt
     rob.step(dt)
-    line.set_data(rob.position())
+    if rob.time_elapsed > 1:
+        rob.reach([13, -10])
+    line.set_data(rob.get_x(), rob.get_y())
     time_text.set_text("time = %.1f" % rob.time_elapsed)
     return line, time_text
 
 
-rob.reach([13, -10])
 t0 = time()
 animate(0)
 t1 = time()
