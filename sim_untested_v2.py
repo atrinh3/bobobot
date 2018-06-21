@@ -1,3 +1,9 @@
+
+# coding: utf-8
+
+# In[1]:
+
+
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -8,21 +14,27 @@ import math
 
 DEBUG = True
 
+
+# In[13]:
+
+
 class Bobo:
     def __init__(self, arms):
+        self.arms = arms
         self.arm1 = arms[0]
         self.arm2 = arms[1]
         self.angle1 = arm1.angle
         self.angle2 = arm2.angle
+        self.position = arms[1].get_endpoint()
         self.w1 = 0
         self.w2 = 0
         self.time_elapsed = 0
         self.target = self.arm2.get_endpoint()
         self.moving = False
-        self.torque = .25  # 1 deg / sec
-
-    def position(self):
-        return self.arm2.get_endpoint()
+        self.torque = 20  # 1 deg / sec
+    
+    def update_position(self):
+        self.position = self.arm2.get_endpoint()
 
     def get_x(self):
         x = [self.arm1.origin[0], self.arm2.origin[0], self.position()[0]]
@@ -56,45 +68,71 @@ class Bobo:
         self.arm1.move(distance)
         self.arm2.set_origin(self.arm1.get_endpoint())
 
+    def proximity(self):
+        a = self.position[0] - self.target[0]
+        b = self.position[1] - self.target[1]
+        return math.hypot(a, b)
+        
     def move_arm2(self, distance):
-        if self.target_prox() > .5:
+        if self.proximity() > .5:
             self.arm2.move(distance)
+            self.update_position()
+            if DEBUG:
+                print(str(self.proximity()) + " away from the target position")
         else:
             self.moving = False
             if DEBUG:
-                print("self.moving = False")
+                print("self.moving now = False")
 
     def a1_target(self, target):
         # There should almost always be 2 points where the arm is in range
         # Pick the one that has the lower value.
         d_target = self.distance(target)
-        a_target = self.angle(target)
-        return a_target - math.degrees(math.cos((d_target/2)/self.arm2.length))
-        
-        
+        out = (self.arms[0].length * self.arms[0].length) + (self.arms[1].length * self.arms[1].length) - (d_target * d_target)
+        out = out / (2 * self.arms[0].length * self.arms[1].length)
+        out = math.degrees(math.acos(out))
+        if DEBUG:
+            print("Target angle for arm1: " + str(out))
+            x = arm1.length * math.cos(math.radians(out))
+            y = arm1.length * math.sin(math.radians(out)            )
+            print("Target position for arm1: ({x}, {y})".format(x=x, y=y))
+        return out        
         
     def step(self, dt):
         if self.moving:
             # find direction to move arm1
             a1_aim = self.a1_target(self.target)
             print(a1_aim)
+            a1_x = self.arms[0].length * math.cos(math.radians(a1_aim))
+            a1_y = self.arms[0].length * math.sin(math.radians(a1_aim))
+            
             # find new angle for arm 2 resulting from arm1 movement
-            a2_target = math.degrees(math.atan((self.target[1] - self.position()[1]) /
-                                               (self.target[0] - self.position()[0])))
             if DEBUG:
+                print("{time} - Current Position: {pos}, target: {target}".format(
+                        time=self.time_elapsed, pos=self.position, target=self.target))
                 #print("{time} - Current Position: {pos}, target prox: {prox}".format(
                 #    time=self.time_elapsed, pos=self.position(), prox=self.target_prox()))
             
             while self.moving:
                 # adjust arm1 by some degrees
-                self.move_arm1(np.sign(a1_limit - self.arm1.angle) * self.torque * dt)
-
-                # adjust arm2 by some degrees
+                if abs(a1_aim - self.arm1.angle) >= .5:
+                    self.move_arm1(np.sign(a1_aim - self.arm1.angle) * self.torque * dt)
+                    
+                # aim arm2 based on movement of arm1
+                a2_target = math.degrees(math.atan((self.target[1] - a1_y) / (self.target[0] - a1_x)))
+                #a2_target = math.degrees(math.atan((self.target[1] - self.position[1]) / 
+                #                                   (self.target[0] - self.position[0])))
+                
                 self.move_arm2(np.sign(a2_target - self.arm2.angle) * self.torque * dt)
                 self.time_elapsed += dt
                 if DEBUG:
+                    a1_end = self.arm1.get_endpoint()
+                    print("{time} - Current Position: {pos}, target: {target}".format(
+                        time=self.time_elapsed, pos=self.position, target=self.target))
                     #print("{time} - Current Position: {pos}, target prox: {prox}".format(
                     #    time=self.time_elapsed, pos=self.position(), prox=self.target_prox()))
+                    print("Current Arm 1 position: ({x}, {y})".format(x=a1_end[0], y=a1_end[1]))
+                    print("")
             print("Done reaching")
 
 
@@ -119,30 +157,46 @@ class Arm:
 
         endpoint = [round(x, 3), round(y, 3)]
         return endpoint
-        
+
+
+# In[17]:
+
+
 arm1 = Arm(10, [0, 0], -90)
 arm2 = Arm(10, arm1.get_endpoint(), 0)
 arms = [arm1, arm2]
 rob = Bobo(arms)
 
-dt = 1 
+dt = 1/30 
 
-#fig = plt.figure()
-#ax = fig.add_subplot(111, autoscale_on=False, xlim=(-5, 25), ylim=(-20, 10))
+rob.reach([13, -13], dt)
 
-# for i in range(0, len(arms)):
-#     this_arm = arms[i]
-#     this_end = this_arm.get_endpoint()
-#     if DEBUG:
-#         print("Arm #%d:" % i)
-#         print("Starting point")
-#         print(this_arm.origin)
-#         print("Ending point")
-#         print(this_end)
-#         print("Moving on to next arm")
-#         print("")
-#
-#     ax.plot([this_arm.origin[0], this_end[0]], [this_arm.origin[1], this_end[1]])
 
-rob.reach([14, -14], dt)
+# In[15]:
+
+
 rob.reset(dt)
+
+
+# In[18]:
+
+
+fig = plt.figure()
+ax = fig.add_subplot(111, autoscale_on=False, xlim=(-5, 25), ylim=(-20, 10))
+
+for i in range(0, len(rob.arms)):
+    this_arm = rob.arms[i]
+    this_end = this_arm.get_endpoint()
+    if DEBUG:
+        print("Target: " + str(rob.target))
+        print("Arm #%d:" % i)
+        print("Starting point")
+        print(this_arm.origin)
+        print("Ending point")
+        print(this_end)
+        print("Moving on to next arm")
+        print("")
+        
+    ax.plot([this_arm.origin[0], this_end[0]], [this_arm.origin[1], this_end[1]])
+    ax.plot(rob.target[0], rob.target[1], marker="o")
+
