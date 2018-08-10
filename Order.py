@@ -10,7 +10,7 @@ class Order:
                 f" {self.ice} ice, {self.sugar} sugar)")
                 
     def __str__(self):
-        return (f"{self.name} - {self.flavor}\n")
+        return (f"{self.name} - {self.flavor}")
                 
         
 class OrderQueue:
